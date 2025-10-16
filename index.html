@@ -931,7 +931,7 @@
         `;
             // ✅ ОСТАВИТЬ ТОЛЬКО ЭТО - отправка на ваш сервер
             try {
-                const response = await fetch('/api/send-appointment', {
+                const response = await fetch('https://mousebackend.onrender.com/api/send-appointment', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
