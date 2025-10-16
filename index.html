@@ -905,10 +905,10 @@
         let selectedService = null;
         let selectedServicePrice = null;
         let selectedMouse = null;
-        let selectedPaymentMethod = null;
+        let selectedPaymentMethod = 'cash'; // По умолчанию
 
+        // Функция отправки уведомления в Telegram
         async function sendTelegramNotification() {
-         
             console.log('🔔 Функция sendTelegramNotification вызвана');
 
             const name = document.getElementById('name')?.value || 'Не указано';
@@ -928,8 +928,8 @@
 📅 Дата: ${date}
 
 ⏰ Запись создана: ${new Date().toLocaleString('ru-RU')}
-        `;
-            // ✅ ОСТАВИТЬ ТОЛЬКО ЭТО - отправка на ваш сервер
+    `;
+
             try {
                 const response = await fetch('https://mousebackend.onrender.com/api/send-appointment', {
                     method: 'POST',
@@ -938,8 +938,8 @@
                     },
                     body: JSON.stringify({
                         name: name,
-                        phone: phone,
-                        service: service,
+                        email: email,
+                        service: selectedService,
                         date: date
                     })
                 });
@@ -948,24 +948,21 @@
 
                 if (result.success) {
                     console.log('✅ Запись отправлена!');
-                    alert('✅ Запись отправлена!');
                 } else {
                     console.log('❌ Ошибка:', result.message);
-                    alert('❌ Ошибка отправки');
                 }
             } catch (error) {
                 console.log('❌ Ошибка сети:', error);
-                alert('❌ Ошибка соединения');
             }
+        }
+
         // Функция завершения оплаты
         function completePayment() {
-            // Проверяем, что выбран способ оплаты
             if (!selectedPaymentMethod) {
                 alert('Пожалуйста, выберите способ оплаты');
                 return;
             }
 
-            // Для оплаты картой проверяем данные карты
             if (selectedPaymentMethod === 'card') {
                 const cardNumber = document.getElementById('card-number')?.value;
                 const cardName = document.getElementById('card-name')?.value;
@@ -977,19 +974,13 @@
                     return;
                 }
             }
-            console.log('Данные для уведомления:', {
-                service: selectedService,
-                mouse: selectedMouse,
-                price: selectedServicePrice,
-                paymentMethod: selectedPaymentMethod,
-                name: document.getElementById('name')?.value,
-                email: document.getElementById('email')?.value
-            });
-            // ВЫЗОВ ФУНКЦИИ УВЕДОМЛЕНИЯ
-            sendTelegramNotification()
+
+            // Отправляем уведомление
+            sendTelegramNotification();
 
             // Сохраняем локально
             saveBookingLocally();
+
             // Обновляем текст на странице успеха
             const successMethodText = selectedPaymentMethod === 'cash' ? 'При получении' : 'Картой онлайн';
             const successElement = document.getElementById('success-payment-method');
@@ -997,14 +988,10 @@
                 successElement.textContent = `Способ оплаты: ${successMethodText}`;
             }
 
-            console.log('Заказ подтвержден! Способ оплаты:', successMethodText);
-
-
-            console.log('Вызываем sendTelegramNotification...');
             // Переходим на страницу успеха
             showSection('success');
-
         }
+
         function saveBookingLocally() {
             const booking = {
                 service: selectedService,
@@ -1015,17 +1002,17 @@
                 date: document.getElementById('date').value,
                 paymentMethod: selectedPaymentMethod,
                 timestamp: new Date().toISOString()
-            }
-        };
-        // Получаем существующие записи
-        const existingBookings = JSON.parse(localStorage.getItem('mouseBookings') || '[]');
-        existingBookings.push(booking);
+            };
 
-        // Сохраняем обратно
-        localStorage.setItem('mouseBookings', JSON.stringify(existingBookings));
+            // Получаем существующие записи
+            const existingBookings = JSON.parse(localStorage.getItem('mouseBookings') || '[]');
+            existingBookings.push(booking);
 
-        console.log('💾 Запись сохранена локально. Всего записей:', existingBookings.length);
+            // Сохраняем обратно
+            localStorage.setItem('mouseBookings', JSON.stringify(existingBookings));
 
+            console.log('💾 Запись сохранена локально. Всего записей:', existingBookings.length);
+        }
 
         // Функция выбора способа оплаты
         function selectPaymentMethod(method) {
@@ -1048,201 +1035,8 @@
                 document.getElementById('payment-method').textContent =
                     method === 'cash' ? 'При получении' : 'Картой онлайн';
             }
-
-            console.log('Выбран способ оплаты:', method);
         }
 
-        // Функция обновления отображения способа оплаты
-        function updatePaymentMethodDisplay() {
-            // Устанавливаем "При получении" по умолчанию
-            selectedPaymentMethod = 'cash';
-            document.getElementById('payment-method').textContent = 'При получении';
-
-            // Показываем соответствующий блок
-            const cardSection = document.getElementById('card-payment-section');
-            const cashSection = document.getElementById('cash-payment-section');
-            if (cardSection) cardSection.style.display = 'none';
-            if (cashSection) cashSection.style.display = 'block';
-
-            const paymentMethodElement = document.getElementById('payment-method');
-            if (paymentMethodElement && selectedPaymentMethod) {
-                paymentMethodElement.textContent = selectedPaymentMethod === 'cash' ? 'При получении' : 'Картой онлайн';
-            }
-            document.getElementById('payment-method').textContent = selectedPaymentMethod === 'cash' ? 'При получении' : 'Картой онлайн';
-        }
-
-        // Плавное появление мышек при скролле
-        function initScrollAnimation() {
-            console.log('🚀 Инициализация анимации мышек...');
-
-            const mouseProfiles = document.querySelectorAll('.mouse-profile.animated');
-            console.log('🔍 Найдено мышек для анимации:', mouseProfiles.length);
-
-            if (mouseProfiles.length === 0) {
-                console.log('❌ Мышки не найдены! Проверьте HTML структуру.');
-                return;
-            }
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        console.log('⭐ Мышка появилась в зоне видимости');
-                        setTimeout(() => {
-                            entry.target.classList.add('visible');
-                            entry.target.classList.remove('animated');
-                        }, 100);
-                    }
-                });
-            }, {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            });
-
-            mouseProfiles.forEach((profile, index) => {
-                profile.style.transitionDelay = `${index * 0.3}s`;
-                observer.observe(profile);
-                console.log(`👀 Наблюдаем за мышкой ${index + 1}`);
-            });
-        }
-
-        // Функция для переключения между разделами
-        function showSection(sectionId) {
-            // Скрыть все разделы
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(section => {
-                section.classList.remove('active');
-            });
-
-            // Показать выбранный раздел
-            document.getElementById(sectionId).classList.add('active');
-
-            // Если переходим на главную, перезапускаем анимацию
-            if (sectionId === 'home') {
-                setTimeout(initScrollAnimation, 300);
-            }
-
-            // Если переходим на страницу оплаты, обновляем данные
-            if (sectionId === 'payment') {
-                updatePaymentDetails();
-            }
-        }
-
-        // Функция выбора услуги
-        function selectService(element, service, price) {
-            selectedService = service;
-            selectedServicePrice = price;
-
-            // Обновляем сводку
-            document.getElementById('summary-service').textContent = service;
-            document.getElementById('summary-price').textContent = price;
-            document.getElementById('summary-total').textContent = price;
-
-            // Снимаем выделение со всех карточек услуг
-            const serviceCards = document.querySelectorAll('.service-card');
-            serviceCards.forEach(card => {
-                card.classList.remove('selected');
-            });
-
-            // Выделяем выбранную карточку
-            element.classList.add('selected');
-        }
-
-        // Функция выбора мыши
-        function selectMouse(element, mouse) {
-            selectedMouse = mouse;
-
-            // Обновляем сводку
-            document.getElementById('summary-mouse').textContent = mouse;
-
-            // Снимаем выделение со всех карточек мышей
-            const mouseCards = document.querySelectorAll('.mouse-card');
-            mouseCards.forEach(card => {
-                card.classList.remove('selected');
-            });
-
-            // Выделяем выбранную карточку
-            element.classList.add('selected');
-        }
-
-        // Функция обработки оплаты
-        function processPayment() {
-            // Проверяем, что все данные заполнены
-            if (!selectedService || !selectedMouse) {
-                alert('Пожалуйста, выберите услугу и мышь');
-                return;
-            }
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const date = document.getElementById('date').value;
-
-            if (!name || !email || !date) {
-                alert('Пожалуйста, заполните все поля формы');
-                return;
-            }
-
-            // Переходим на страницу оплаты
-            showSection('payment');
-        }
-
-        // Функция обновления деталей на странице оплаты
-        function updatePaymentDetails() {
-            document.getElementById('payment-service').textContent = selectedService || 'Не выбрано';
-            document.getElementById('payment-mouse').textContent = selectedMouse || 'Не выбрано';
-            document.getElementById('payment-price').textContent = selectedServicePrice || 'Не выбрано';
-            document.getElementById('payment-total').textContent = selectedServicePrice || 'Не выбрано';
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const date = document.getElementById('date').value;
-
-            document.getElementById('payment-client').textContent = `${name} (${email})`;
-            document.getElementById('payment-date').textContent = date ? new Date(date).toLocaleString('ru-RU') : 'Не указано';
-
-            // Устанавливаем способ оплаты по умолчанию
-            selectedPaymentMethod = 'cash';
-            updatePaymentMethodDisplay();
-
-            // Показываем блок для оплаты при получении
-            const cardSection = document.getElementById('card-payment-section');
-            const cashSection = document.getElementById('cash-payment-section');
-            if (cardSection) cardSection.style.display = 'none';
-            if (cashSection) cashSection.style.display = 'block';
-
-            // Устанавливаем радио-кнопку "При получении" как выбранную
-            const cashRadio = document.querySelector('input[value="cash"]');
-            if (cashRadio) cashRadio.checked = true;
-        }
-        // Вызываем когда страница загрузится
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('📄 Страница загружена, запускаем анимацию...');
-            setTimeout(initScrollAnimation, 500);
-        });
-
-        function selectPaymentMethod(method) {
-            console.log('selectPaymentMethod called with:', method);
-            selectedPaymentMethod = method;
-
-            // Обновляем отображение
-            const paymentMethodElement = document.getElementById('payment-method');
-            if (paymentMethodElement) {
-                paymentMethodElement.textContent = method === 'cash' ? 'При получении' : 'Картой онлайн';
-            }
-
-            // Показываем/скрываем блоки оплаты
-            const cardSection = document.getElementById('card-payment-section');
-            const cashSection = document.getElementById('cash-payment-section');
-
-            if (cardSection && cashSection) {
-                if (method === 'card') {
-                    cardSection.style.display = 'block';
-                    cashSection.style.display = 'none';
-                } else {
-                    cardSection.style.display = 'none';
-                    cashSection.style.display = 'block';
-                }
-            }
-        }
         // Плавное появление мышек при скролле
         function initScrollAnimation() {
             console.log('🚀 Инициализация анимации мышек...');
@@ -1387,10 +1181,13 @@
             // Устанавливаем радио-кнопку "При получении" как выбранную
             const cashRadio = document.querySelector('input[value="cash"]');
             if (cashRadio) cashRadio.checked = true;
-            document.addEventListener('DOMContentLoaded', function () {
-                console.log('📄 Страница загружена!');
-            });
         }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('📄 Страница загружена, запускаем анимацию...');
+            setTimeout(initScrollAnimation, 500);
+        });
     </script>
 
 </body>
